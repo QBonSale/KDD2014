@@ -5,12 +5,14 @@ import cPickle as pickle
 import math
 from sklearn.feature_extraction.text import TfidfVectorizer
 from DataFrameImputer import DataFrameImputer
+from stemming.porter2 import stem
 
 
-def clean(s):
+def stem_essay(s):
     try:
-        return " ".join(re.findall(r'\w+', s, flags=re.UNICODE | re.LOCALE)).lower()
-    except:
+        words = re.findall(r'\w+', s, flags=re.UNICODE | re.LOCALE).lower()
+        return " ".join([stem(word) for word in words])
+    except: # no \w+ at all
         return " ".join(re.findall(r'\w+', "no_text", flags=re.UNICODE | re.LOCALE)).lower()
 
 
@@ -194,7 +196,7 @@ if __name__ == '__main__':
         print('cleaning essay...')
         essays = essays.ix[projects.index.values.tolist()]  # align
         essays.fillna('')
-        essays['essay'] = essays['essay'].apply(clean)
+        essays['essay'] = essays['essay'].apply(stem_essay)
 
         '''
         totalCount = essays.shape[0]
@@ -218,7 +220,6 @@ if __name__ == '__main__':
         # learn rules on train_data
         train_essays = vectorizer.fit_transform(essays.ix[train_idx]['essay'])
         test_essays = vectorizer.transform(essays.ix[test_idx]['essay'])
-
 
         print('saving essay data')
         with open('data/essays.bin', 'wb') as f:
