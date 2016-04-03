@@ -1,10 +1,17 @@
-# coding=utf-8
-import csv
 import pandas as pd
 import numpy as np
-from DataFrameImputer import DataFrameImputer
+import re
 import cPickle as pickle
 import math
+from sklearn.feature_extraction.text import TfidfVectorizer
+from DataFrameImputer import DataFrameImputer
+
+
+def clean(s):
+    try:
+        return " ".join(re.findall(r'\w+', s, flags=re.UNICODE | re.LOCALE)).lower()
+    except:
+        return " ".join(re.findall(r'\w+', "no_text", flags=re.UNICODE | re.LOCALE)).lower()
 
 
 def normalize(x):
@@ -75,36 +82,49 @@ def find_teacher_history(projects, outcomes):
 
 
 if __name__ == '__main__':
+
+    # load projects data
     try:
+        raise OSError
         print('loading processed data...')
-        f = file('data/data.bin', 'rb')
-        projects = np.load(f)
-        outcomes = np.load(f)
-        train_idx = np.load(f)
-        test_idx = np.load(f)
+        f = open('data/projects.bin', 'rb')
+        projects = pickle.load(f)
+        outcomes = pickle.load(f)
+        train_idx = pickle.load(f)
+        test_idx = pickle.load(f)
         f.close()
+        print projects.ix[train_idx].shape
+        print projects.ix[test_idx].shape
     except (OSError, IOError) as e:
-        print('processed data not found, recomputing')
+        #print('processed data not found, recomputing...')
         print('loading raw data')
         # donations = pd.read_csv('data/donations.csv')
         projects = pd.read_csv('data/projects.csv')
         outcomes = pd.read_csv('data/outcomes.csv')
-        # essays = pd.read_csv('data/essays.csv')
 
         # share the index
         # essays = essays.sort_values(by='projectid')
-        projects = projects.sort_values(by='projectid')
-        outcomes = outcomes.sort_values(by='projectid')
+        projects = projects.sort_values('projectid')
+        outcomes = outcomes.sort_values('projectid')
         projects.set_index('projectid')
         outcomes.set_index('projectid')
+
+        projects = projects[projects['date_posted'] >= '2010-04-01']
+        train_idx = projects[projects['date_posted'] < '2014-04-01'].index.values.tolist()
+        test_idx = projects[projects['date_posted'] >= '2014-04-01'].index.values.tolist()
+        outcomes  = outcomes.ix[train_idx]
+        # train_idx = outcomes.index.values.tolist()
+        # discarded_idx = list(projects.projectid)
+        # train_idx = list(set(train_idx)-set(discarded_idx))
+        # all_idx = projects.index.values.tolist()
+        # #test_idx = list(set(all_idx)-set(train_idx))
+
+        print('train data shape', projects.ix[train_idx].shape)
+        print('test data shape', projects.ix[test_idx].shape)
+
         print('raw data loaded')
 
-        train_idx = projects[
-            (projects['date_posted'] >= '2010-04-01') & (projects['date_posted'] <= '2014-01-01')].index.values
-        test_idx = projects[projects['date_posted'] >= '2014-01-01'].index.values
-
-        # TODO: do we need to drop project_id before fitting?
-        print('dropping unnecessary columns')
+        print('dropping unnecessary columns...')
         drop_labels = ['school_ncesid', 'school_latitude', 'school_longitude', 'school_zip', 'school_district',
                        'school_county', 'secondary_focus_subject', 'secondary_focus_area']
         drop_labels.append('date_posted')
@@ -112,12 +132,12 @@ if __name__ == '__main__':
         for label in drop_labels:
             projects.drop(label, axis=1, inplace=True)
 
-        print('imputing missing elements')  # mean for number, most frequent for nan
+        print('imputing missing elements...')  # mean for number, most frequent for nan
         dfi = DataFrameImputer()
         projects = dfi.fit_transform(projects)
         outcomes = dfi.fit_transform(outcomes)
 
-        print('factorizing catagorical values')
+        print('factorizing catagorical values...')
         proj_cat_labels = ['teacher_acctid', 'schoolid', 'school_city', 'school_state', 'school_metro',
                            'school_charter',
                            'school_magnet', 'school_year_round', 'school_nlns', 'school_kipp',
@@ -144,16 +164,66 @@ if __name__ == '__main__':
         print('replacing teacher_id with his performance')
         find_teacher_history(projects, outcomes)
         projects.drop('teacher_acctid', axis=1, inplace=True)
-        print(projects.head)
 
-        print('saving processed data')  # save data into a binary file
-        f = file('data/data.bin', 'wb')
-        np.save(f, projects)
-        np.save(f, outcomes)
-        np.save(f, train_idx)
-        np.save(f, test_idx)
-        f.close()
+        '''
+        print('saving processed data...')  # save data into a binary file
+        with open('data/projects.bin', 'wb') as f:
+            pickle.dump(projects, f)
+            pickle.dump(outcomes, f)
+            pickle.dump(train_idx, f)
+            pickle.dump(test_idx, f)
         print('processed data saved')
+        '''
+    # load essay data
+    try:
+        #raise OSError
+        print('loading essay data...')
+        f = open('data/essays.bin', 'rb')
+        train_essays = pickle.load(f)
+        test_essays = pickle.load(f)
+        f.close()
+    except (OSError, IOError) as e:
+        #print('essay data not found, recomputing...')
+        print('loading raw essay data...')
+        essays = pd.read_csv('data/essays.csv')
+        essays.sort_values(by='projectid')
+        essays.set_index('projectid')
+        print('projects shape', projects.ix[train_idx].shape)
+        print('essays shape', essays.ix[train_idx].shape)
 
+        print('cleaning essay...')
+        essays = essays.ix[projects.index.values.tolist()]  # align
+        essays.fillna('')
+        essays['essay'] = essays['essay'].apply(clean)
+
+        '''
+        totalCount = essays.shape[0]
+        for i in range(1, essays.shape[1]):
+            nullcount = essays[essays[essays.columns[i]].isnull()].shape[0]
+            percentage = float(nullcount) / float(totalCount) * 100
+            if percentage > 0:
+                print(essays.columns[i], percentage, '%')
+        '''
+
+        '''
+        ('title', 0.002559863152727459, '%')
+        ('short_description', 0.019876584480001444, '%')
+        ('need_statement', 0.22165403298910702, '%')    too many missing
+        ('essay', 0.0004517405563636692, '%')
+        '''
+
+        print('vectorizing essays...')
+        # minimum 5 appearances, auto-detectcorpus stop word with rate>=98%
+        vectorizer = TfidfVectorizer(min_df=5, max_df=0.98, max_features=500)
+        # learn rules on train_data
+        train_essays = vectorizer.fit_transform(essays.ix[train_idx]['essay'])
+        test_essays = vectorizer.transform(essays.ix[test_idx]['essay'])
+
+
+        print('saving essay data')
+        with open('data/essays.bin', 'wb') as f:
+            pickle.dump(train_essays, f)
+            pickle.dump(test_essays, f)
+        print('processed data saved')
 
 
