@@ -7,16 +7,23 @@ import MachineLearning as mlp
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from DataFrameImputer import DataFrameImputer
-from stemming.porter2 import stem
+import Stemmer
+from datetime import datetime
+# def stem_essay(s):
+#     try:
+#         words = re.findall(r'\w+', s, flags=re.UNICODE | re.LOCALE).lower()
+#         return " ".join([stem(word) for word in words])
+#     except: # no \w+ at all
+#         return " ".join(re.findall(r'\w+', "no_text", flags=re.UNICODE | re.LOCALE)).lower()
 
 
-def stem_essay(s):
-    try:
-        words = re.findall(r'\w+', s, flags=re.UNICODE | re.LOCALE).lower()
-        return " ".join([stem(word) for word in words])
-    except: # no \w+ at all
-        return " ".join(re.findall(r'\w+', "no_text", flags=re.UNICODE | re.LOCALE)).lower()
+english_stemmer = Stemmer.Stemmer('en')
 
+
+class StemmedTfidfVectorizer(TfidfVectorizer):
+    def build_analyzer(self):
+        analyzer = super(TfidfVectorizer, self).build_analyzer()
+        return lambda doc: 'no_text' if (doc is np.nan) else english_stemmer.stemWords(analyzer(doc))
 
 def normalize(x):
     return 1 + math.log(float(x)) if x > 0 else 0
@@ -217,60 +224,60 @@ if __name__ == '__main__':
         sample.to_csv('predictions.csv', index = True)
 
     # load essay data
-    '''
     try:
         #raise OSError
+        startTime = datetime.now()
         print('loading essay data...')
         f = open('data/essays.bin', 'rb')
         train_essays = pickle.load(f)
         test_essays = pickle.load(f)
         f.close()
+        print datetime.now() - startTime
+        print test_essays
     except (OSError, IOError) as e:
         #print('essay data not found, recomputing...')
         print('loading raw essay data...')
         essays = pd.read_csv('data/essays.csv')
         essays.sort_values(by='projectid')
-        essays.set_index('projectid')
+        essays.set_index('projectid', inplace=True)
         print('projects shape', projects.ix[train_idx].shape)
         print('essays shape', essays.ix[train_idx].shape)
 
         print('cleaning essay...')
         essays = essays.ix[projects.index.values.tolist()]  # align
-        essays.fillna('')
-        essays['essay'] = essays['essay'].apply(stem_essay)
-    '''
+        essays.fillna('no_text')
+        #essays['essay'] = essays['essay'].apply(stem_essay)
 
-    '''
+        '''
         totalCount = essays.shape[0]
         for i in range(1, essays.shape[1]):
             nullcount = essays[essays[essays.columns[i]].isnull()].shape[0]
             percentage = float(nullcount) / float(totalCount) * 100
             if percentage > 0:
                 print(essays.columns[i], percentage, '%')
-    '''
+        '''
 
-    '''
+        '''
         ('title', 0.002559863152727459, '%')
         ('short_description', 0.019876584480001444, '%')
         ('need_statement', 0.22165403298910702, '%')    too many missing
         ('essay', 0.0004517405563636692, '%')
-    '''
+        '''
 
-    '''
+        startTime = datetime.now()
         print('vectorizing essays...')
         # minimum 5 appearances, auto-detectcorpus stop word with rate>=98%
-        vectorizer = TfidfVectorizer(min_df=5, max_features=500)
+        vectorizer = StemmedTfidfVectorizer(min_df=5, max_features=500, stop_words='english', analyzer='word', lowercase=True)
         # learn rules on train_data
         train_essays = vectorizer.fit_transform(essays.ix[train_idx]['essay'])
         test_essays = vectorizer.transform(essays.ix[test_idx]['essay'])
+
+        print datetime.now() - startTime
 
         print('saving essay data')
         with open('data/essays.bin', 'wb') as f:
             pickle.dump(train_essays, f)
             pickle.dump(test_essays, f)
         print('processed data saved')
-
-        print('training model')
-    '''
 
 
