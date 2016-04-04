@@ -112,8 +112,8 @@ if __name__ == '__main__':
         sample['is_exciting'] = preds
         sample.to_csv('predictions.csv', index = False)
 
-        print projects.ix[train_idx].shape
-        print projects.ix[test_idx].shape
+        #print projects.ix[train_idx].shape
+        #print projects.ix[test_idx].shape
 
     except (OSError, IOError) as e:
         #print('processed data not found, recomputing...')
@@ -126,13 +126,16 @@ if __name__ == '__main__':
         # essays = essays.sort_values(by='projectid')
         projects = projects.sort_values('projectid')
         outcomes = outcomes.sort_values('projectid')
-        projects.set_index('projectid')
-        outcomes.set_index('projectid')
+        projects.set_index('projectid', inplace=True)
+        outcomes.set_index('projectid', inplace=True)
 
         projects = projects[projects['date_posted'] >= '2010-04-01']
-        train_idx = projects[projects['date_posted'] < '2014-04-01'].index.values.tolist()
-        test_idx = projects[projects['date_posted'] >= '2014-04-01'].index.values.tolist()
+        train_idx = projects[projects['date_posted'] < '2014-01-01'].index.values.tolist()
+        test_idx = projects[projects['date_posted'] >= '2014-01-01'].index.values.tolist()
         outcomes  = outcomes.ix[train_idx]
+        print(projects.shape)
+        print(outcomes.shape)
+
         # train_idx = outcomes.index.values.tolist()
         # discarded_idx = list(projects.projectid)
         # train_idx = list(set(train_idx)-set(discarded_idx))
@@ -194,7 +197,27 @@ if __name__ == '__main__':
             pickle.dump(test_idx, f)
         print('processed data saved')
         '''
+        print('training models')
+        ml = mlp.MachineLearning()
+        ml.training_data = projects.ix[train_idx]
+        ml.training_labels = outcomes.is_exciting
+        ml.testing_data = projects.ix[test_idx]
+        #print( ml.training_data.head)
+        #print( ml.training_labels.head)
+        ml.preprocessTrain()
+        ml.preprocessTest()
+        ml.trainSingleModel('LRModel')
+        preds = ml.predict()
+
+        print('saving prediction to file')
+        sample = pd.read_csv('./data/sampleSubmission.csv')
+        print(preds)
+        sample.set_index('projectid',inplace = True)
+        sample['is_exciting'] = preds
+        sample.to_csv('predictions.csv', index = True)
+
     # load essay data
+    '''
     try:
         #raise OSError
         print('loading essay data...')
@@ -215,23 +238,25 @@ if __name__ == '__main__':
         essays = essays.ix[projects.index.values.tolist()]  # align
         essays.fillna('')
         essays['essay'] = essays['essay'].apply(stem_essay)
+    '''
 
-        '''
+    '''
         totalCount = essays.shape[0]
         for i in range(1, essays.shape[1]):
             nullcount = essays[essays[essays.columns[i]].isnull()].shape[0]
             percentage = float(nullcount) / float(totalCount) * 100
             if percentage > 0:
                 print(essays.columns[i], percentage, '%')
-        '''
+    '''
 
-        '''
+    '''
         ('title', 0.002559863152727459, '%')
         ('short_description', 0.019876584480001444, '%')
         ('need_statement', 0.22165403298910702, '%')    too many missing
         ('essay', 0.0004517405563636692, '%')
-        '''
+    '''
 
+    '''
         print('vectorizing essays...')
         # minimum 5 appearances, auto-detectcorpus stop word with rate>=98%
         vectorizer = TfidfVectorizer(min_df=5, max_df=0.98, max_features=500)
@@ -246,6 +271,6 @@ if __name__ == '__main__':
         print('processed data saved')
 
         print('training model')
-
+    '''
 
 
