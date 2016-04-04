@@ -65,4 +65,4 @@ preds =lr.predict_proba(ts)[:,1]
 
 
 sample['is_exciting'] = preds
-sample.to_csv('predictions.csv', index = False)
+sample.to_csv('benchmark_predictions.csv', index = False)
