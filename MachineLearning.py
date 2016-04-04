@@ -12,7 +12,7 @@ import MachineLearningModel
 
 __author__ = "Sirui Xie"
 
-class MachineLearing:
+class MachineLearning:
     '''
     A class that offers mutliple machine learning models and functions
     '''
@@ -34,20 +34,22 @@ class MachineLearing:
         if scaler = 1, use min-max scaling [0,1]
         '''
 
-        if not self.training_data:
+        if not len(self.training_data):
             return
         else:
+            print('preprocessing training data ...')
             if scaler == 0:
                 self.scaler = preprocessing.StandardScaler()
             elif scaler == 1:
                 self.scaler = preprocessing.MinMaxScaler()
 
-        self.testing_data = self.scaler.fit_transform(self.training_data)
+            self.training_data = self.scaler.fit_transform(self.training_data)
 
     def preprocessTest(self):
         '''
         preprocess testing data
         '''
+        print('preprocessing testing data ...')
         self.testing_data = self.scaler.transform(self.testing_data)
 
     def splitData(self, trainingData, trainingLabels):
@@ -55,15 +57,30 @@ class MachineLearing:
 
     def crossValidation(self, numXValidation):
         model = GradientBoostingClassifier(learning_rate=0.2,subsample=0.4)
-        return cross_validation.cross_val_score(model, self.data_train, self.labels_train[:,0], cv=numXValidation)
+        return cross_validation.cross_val_score(model, self.training_data, self.training_labels[:,0], cv=numXValidation)
 
-    def trainModel(self, modelNum):
+    def trainSingleModel(self, model_name='GNB'):
+        modelIndex = ['GNB', 'SVClassifier', 'LRModel', 'ABClassifier', 'GBClassifier']
+        modelNum = modelIndex.index(model_name)
         if modelNum == 1:
-            self.ml_model = MachineLearningModel.LRModel()
+            self.ml_model = MachineLearningModel.SVClassifier()
         elif modelNum == 2:
+            self.ml_model = MachineLearningModel.LRModel()
+        elif modelNum == 3:
+            self.ml_model = MachineLearningModel.ABClassifier()
+        elif modelNum == 4:
             self.ml_model = MachineLearningModel.GBClassifier()
 
         self.ml_model.train(self.training_data, self.training_labels)
 
+    def trainVtClassifier(self, *model_names):
+        self.ml_model = MachineLearningModel.VtClassifier(*model_names)
+        self.ml_model.train(self.training_data, self.training_labels)
+
     def predict(self):
         return self.ml_model.predict(self.testing_data)
+
+    def featImportance(self):
+        tempModel = MachineLearningModel.ExTrClassifier()
+        tempModel.train(self.training_data, self.training_labels)
+        tempModel.featureImp(self.training_data)
