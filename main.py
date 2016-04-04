@@ -259,7 +259,7 @@ if __name__ == '__main__':
     '''
         print('vectorizing essays...')
         # minimum 5 appearances, auto-detectcorpus stop word with rate>=98%
-        vectorizer = TfidfVectorizer(min_df=5, max_df=0.98, max_features=500)
+        vectorizer = TfidfVectorizer(min_df=5, max_features=500)
         # learn rules on train_data
         train_essays = vectorizer.fit_transform(essays.ix[train_idx]['essay'])
         test_essays = vectorizer.transform(essays.ix[test_idx]['essay'])
