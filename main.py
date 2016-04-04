@@ -155,7 +155,7 @@ if __name__ == '__main__':
         print('raw data loaded')
 
         print('dropping unnecessary columns...')
-        drop_labels = ['school_ncesid', 'school_latitude', 'school_longitude', 'school_zip', 'school_district',
+        drop_labels = ['school_ncesid', 'schoolid', 'school_city', 'school_latitude', 'school_longitude', 'school_zip', 'school_district',
                        'school_county', 'secondary_focus_subject', 'secondary_focus_area']
         drop_labels.append('date_posted')
         # drop_labels.append('school_city')
@@ -168,7 +168,7 @@ if __name__ == '__main__':
         outcomes = dfi.fit_transform(outcomes)
 
         print('factorizing catagorical values...')
-        proj_cat_labels = ['teacher_acctid', 'schoolid', 'school_city', 'school_state', 'school_metro',
+        proj_cat_labels = ['teacher_acctid',  'school_state', 'school_metro',
                            'school_charter',
                            'school_magnet', 'school_year_round', 'school_nlns', 'school_kipp',
                            'school_charter_ready_promise',
@@ -209,8 +209,8 @@ if __name__ == '__main__':
         ml.training_data = projects.ix[train_idx]
         ml.training_labels = outcomes.is_exciting
         ml.testing_data = projects.ix[test_idx]
-        #print( ml.training_data.head)
-        #print( ml.training_labels.head)
+        print(ml.training_data.head)
+        print(ml.training_labels.head)
         ml.preprocessTrain()
         ml.preprocessTest()
         ml.trainSingleModel('LRModel')
@@ -218,10 +218,11 @@ if __name__ == '__main__':
 
         print('saving prediction to file')
         sample = pd.read_csv('./data/sampleSubmission.csv')
-        print(preds)
-        sample.set_index('projectid',inplace = True)
+        #print(preds)
+        sample.set_index('projectid', inplace=True)
         sample['is_exciting'] = preds
-        sample.to_csv('predictions.csv', index = True)
+        sample.to_csv('predictions.csv', index=True)
+        exit(0)
 
     # load essay data
     try:

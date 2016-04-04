@@ -41,6 +41,9 @@ class LRModel(Model):
         Model.__init__(self)
         self.model = LogisticRegression()
 
+    def predict(self, test):
+        return self.model.predict_proba(test)
+
 class ABClassifier(Model):
     '''
     Adaptive Boosting Classifier
@@ -50,6 +53,8 @@ class ABClassifier(Model):
         Model.__init__(self)
         self.model = AdaBoostClassifier(DecisionTreeClassifier(max_depth=1),algorithm="SAMME",n_estimators=200)
 
+    def predict(self, test):
+        return self.model.predict_proba(test)
 
 class GBClassifier(Model):
     '''
@@ -58,6 +63,8 @@ class GBClassifier(Model):
     def __init__(self):
         Model.__init__(self)
         self.model = GradientBoostingClassifier(learning_rate=0.2,subsample=0.4)
+    def predict(self, test):
+        return self.model.predict_proba(test)
 
 class ExTrClassifier(Model):
     '''
@@ -115,6 +122,9 @@ class VtClassifier(Model):
         for model in self.models:
             model.train(data, target)
         self.model.fit(data, target)
+
+    def predict(self, test):
+        return self.model.predict_proba(test)
 
 
 
