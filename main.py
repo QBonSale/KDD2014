@@ -5,6 +5,7 @@ import numpy as np
 from DataFrameImputer import DataFrameImputer
 import cPickle as pickle
 import math
+import MachineLearning as mlp
 
 
 def normalize(x):
@@ -83,6 +84,21 @@ if __name__ == '__main__':
         train_idx = np.load(f)
         test_idx = np.load(f)
         f.close()
+
+        print('training models')
+        ml = mlp.MachineLearning()
+        ml.training_data = projects
+        ml.training_labels = outcomes[:,1]
+        ml.preprocessTrain(0)
+        ml.preprocessTest()
+        ml.trainModel(1)
+        preds = ml.predict()
+
+        print('saving prediction to file')
+        sample = pd.read_csv('./data/sampleSubmission.csv')
+        sample['is_exciting'] = preds
+        sample.to_csv('predictions.csv', index = False)
+
     except (OSError, IOError) as e:
         print('processed data not found, recomputing')
         print('loading raw data')
@@ -154,6 +170,9 @@ if __name__ == '__main__':
         np.save(f, test_idx)
         f.close()
         print('processed data saved')
+
+        print('training model')
+
 
 
 
