@@ -27,6 +27,25 @@ class MachineLearning:
         self.scaler = []
         self.ml_model = MachineLearningModel.Model()
 
+
+    def preprocess(self, df, scaler=0):
+        '''
+        preprocess training data
+        if sclaer = 0, use StandardScaler
+        if scaler = 1, use min-max scaling [0,1]
+        '''
+
+        if not len(df):
+            return
+        else:
+            print('preprocessing training data ...')
+            if scaler == 0:
+                self.scaler = preprocessing.StandardScaler()
+            elif scaler == 1:
+                self.scaler = preprocessing.MinMaxScaler()
+
+        return self.scaler.fit_transform(df)
+
     def preprocessTrain(self, scaler = 0):
         '''
         preprocess training data
@@ -57,10 +76,10 @@ class MachineLearning:
 
     def crossValidation(self, numXValidation):
         model = GradientBoostingClassifier(learning_rate=0.2,subsample=0.4)
-        return cross_validation.cross_val_score(model, self.training_data, self.training_labels[:,0], cv=numXValidation)
+        return cross_validation.cross_val_score(model, self.training_data, self.training_labels[:,0], cv=numXValidation, scoring='roc_au')
 
     def trainSingleModel(self, model_name='GNB'):
-        modelIndex = ['GNB', 'SVClassifier', 'LRModel', 'ABClassifier', 'GBClassifier']
+        modelIndex = ['GNB', 'SVClassifier', 'LRModel', 'ABClassifier', 'GBClassifier', 'ExTrClassifier']
         modelNum = modelIndex.index(model_name)
         if modelNum == 1:
             self.ml_model = MachineLearningModel.SVClassifier()
@@ -70,6 +89,8 @@ class MachineLearning:
             self.ml_model = MachineLearningModel.ABClassifier()
         elif modelNum == 4:
             self.ml_model = MachineLearningModel.GBClassifier()
+        elif modelNum == 5:
+            self.ml_model = MachineLearningModel.ExTrClassifier()
 
         self.ml_model.train(self.training_data, self.training_labels)
 

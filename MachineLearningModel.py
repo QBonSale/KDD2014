@@ -41,6 +41,9 @@ class LRModel(Model):
         Model.__init__(self)
         self.model = LogisticRegression()
 
+    def train(self, data, target):
+        self.model.fit(data, target)
+
     def predict(self, test):
         return self.model.predict_proba(test)
 
@@ -80,8 +83,7 @@ class ExTrClassifier(Model):
 
     def featureImp(self, data):
         importances = self.model.feature_importances_
-        std = np.std([tree.feature_importances_ for tree in self.model.estimators_],
-             axis=0)
+        std = np.std([tree.feature_importances_ for tree in self.model.estimators_], axis=0)
         indices = np.argsort(importances)[::-1]
 
         # Print the feature ranking
