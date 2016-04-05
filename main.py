@@ -209,26 +209,26 @@ if __name__ == '__main__':
     target = outcomes['is_exciting']
     target = np.array(target == 't').astype(int)
 
-    # model = LogisticRegression(class_weight='balanced')
-    # model.fit(train_essays, target)
-    # preds = model.predict_proba(test_essays)[:, 1]
-    #
-    # print('saving prediction to file')
-    # sample = pd.read_csv('./data/sampleSubmission.csv')
-    # sample.sort_values('projectid')
-    # sample['is_exciting'] = preds
-    # #sample['is_exciting'] = cutoff(preds, 0.5)
-    # sample.to_csv('essay_predictions.csv', index=True)
+    model = LogisticRegression(class_weight='balanced')
+    model.fit(train_essays, target)
+    preds = model.predict_proba(test_essays)[:, 1]
 
-    clf = MultinomialNB()
-    print("Finding support.")
-    sel = RFECV(clf, step=.01, cv=5, scoring='roc_auc')
-    sel.fit(train_essays, target)
-    print("Number of support samples = %i" % sel.n_features_)
-    print("Training.")
-    clf.fit(train_essays.tocsc()[:, sel.support_], target)
-    preds = clf.predict_proba(test_essays.tocsc()[:, sel.support_])[:, 1]
-
-    print("Writing predictions.")
+    print('saving prediction to file')
+    sample = pd.read_csv('./data/sampleSubmission.csv')
+    sample.sort_values('projectid')
     sample['is_exciting'] = preds
-    sample.to_csv('NB_predictions.csv', index=False)
+    #sample['is_exciting'] = cutoff(preds, 0.5)
+    sample.to_csv('essay_predictions.csv', index=True)
+
+    # clf = MultinomialNB()
+    # print("Finding support.")
+    # sel = RFECV(clf, step=.01, cv=5, scoring='roc_auc')
+    # sel.fit(train_essays, target)
+    # print("Number of support samples = %i" % sel.n_features_)
+    # print("Training.")
+    # clf.fit(train_essays.tocsc()[:, sel.support_], target)
+    # preds = clf.predict_proba(test_essays.tocsc()[:, sel.support_])[:, 1]
+
+    # print("Writing predictions.")
+    # sample['is_exciting'] = preds
+    # sample.to_csv('NB_predictions.csv', index=False)

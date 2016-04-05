@@ -82,6 +82,43 @@ def find_teacher():
     find_teacher_history(projects, outcomes)
 
 
+def find_school_history(projects, outcomes):
+    exciting = outcomes['is_exciting']
+    schools = projects['school_id']
+    df = pd.concat([exciting, schools], axis=1)
+    df = df[df['is_exciting'] == 't']
+    school_exciting_counts = {}
+
+    for index, row in df.iterrows():
+        school = row['school_id']
+        school_exciting_counts[school] = school_exciting_counts.get(school, 0) + 1
+    #print     school_exciting_counts
+        school_exciting_counts = {k: teacher_normalize(v) for k, v in school_exciting_counts.items()}
+    projects['school_exciting_counts'] = projects['school_id'].map(school_exciting_counts)
+    projects['school_exciting_counts'].fillna(0.0, inplace=True)
+    print projects.shape
+    #print projects.head
+    teacher = projects[['projectid', 'school_exciting_counts']]
+    print teacher.shape
+    teacher.to_csv('data/school_performance.csv', index=False)
+
+    print('schools\' data saved')
+    return projects
+
+
+def find_school():
+    print('loading raw data')
+    # donations = pd.read_csv('data/donations.csv')
+    projects = pd.read_csv('data/projects.csv')
+    outcomes = pd.read_csv('data/outcomes.csv')
+
+    # share the index
+    projects = projects.sort('projectid')
+    outcomes = outcomes.sort('projectid')
+
+    find_school_history(projects, outcomes)
+
+
 def find_essaylen():
     print('loading raw essay data...')
     essays = pd.read_csv('data/essays.csv')
@@ -107,3 +144,5 @@ def find_essaylen():
     essaylen.to_csv('data/essay_length.csv', index=False)
 
 find_essaylen()
+find_school()
+find_teacher()
