@@ -1,5 +1,6 @@
 import pandas as pd
 import math
+from nltk import tokenize as nltok, tag as nltag
 
 
 def teacher_normalize(x):
@@ -143,6 +144,104 @@ def find_essaylen():
     print essaylen.shape
     essaylen.to_csv('data/essay_length.csv', index=False)
 
+def find_cd_count():
+    projects = pd.read_csv('data/projects.csv')
+    outcomes = pd.read_csv('data/outcomes.csv')
+
+    # share the index
+    projects = projects.sort_values('projectid')
+    outcomes = outcomes.sort_values('projectid')
+    projects.set_index('projectid', inplace=True)
+    outcomes.set_index('projectid', inplace=True)
+
+    projects = projects[projects['date_posted'] >= '2010-04-01']
+    train_idx = projects[projects['date_posted'] < '2014-01-01'].index.values.tolist()
+    test_idx = projects[projects['date_posted'] >= '2014-01-01'].index.values.tolist()
+    outcomes  = outcomes.ix[train_idx]
+
+    print('loading raw essay data...')
+    essays = pd.read_csv('data/essays.csv')
+    essays.sort_values(by='projectid')
+    essays.set_index('projectid', inplace=True)
+    print('projects shape', projects.ix[train_idx].shape)
+    print('essays shape', essays.ix[train_idx].shape)
+
+    print('cleaning essay...')
+    essays = essays.ix[projects.index.values.tolist()]  # align
+    essays.fillna('no_text')
+
+    # POS to calculate the number of Numerical words in the essay
+    train_sents = essays.ix[train_idx]['essay'].astype(str)
+    test_sents = essays.ix[test_idx]['essay'].astype(str)
+
+    '''
+        print('calculating essay length...')
+        train_essay_length = [len(t) for s in train_sents for t in nltok.word_tokenize(s.decode('utf-8'))]
+        #test_essay_length = [len(t) for s in test_sents for t in nltok.word_tokenize(s.decode('utf-8'))]
+
+        print datetime.now() - startTime
+
+        print('saving essay_length to file...')
+        sample = pd.read_csv('./data/trainEssayLength.csv')
+        sample['essay_length'] = train_essay_length
+        sample.to_csv('trainEssayLength.csv', index = False)
+        print('essay_length saved to file')
+    '''
+
+    print('calculating essay num...')
+    for train_sent_list in train_sents:
+        train_sent_list = nltok.sent_tokenize(train_sent_list.decode('utf-8'))
+    print('sentences to list')
+
+    tmp = []
+    for i in range(0,len(train_sents)-1):
+        num = 0
+        for j in range(0, len(train_sents[i])-1):
+            for wt in nltag.pos_tag(train_sents[i][j]):
+                if(wt[1]=='CD'):
+                        num+=1
+        tmp.append(num)
+
+    train_essay_cd_num = pd.Series(tmp, index = train_idx)
+
+
+    for test_sent_list in train_sents:
+        test_sent_list = nltok.sent_tokenize(test_sent_list.decode('utf-8'))
+
+    test_words = [nltok.word_tokenize(test_sent) for test_sent_list in test_sents for test_sent in test_sent_list ]
+
+    test_word_tags = [nltag.pos_tag(w) for b in test_words for a in b for w in a ]
+
+    tmp = []
+    for i in range(0,len(test_word_tags)-1):
+        num = 0
+        for j in range(0, len(test_word_tags[0])-1):
+            for k in range(0, len(nltag.word_tags[0][0])-1):
+                if(test_word_tags[i][j][k][0]=='CD'):
+                    num+=1
+        tmp.append(num)
+    test_essay_cd_num = pd.Series(tmp, index = train_idx)
+
+    print('saving essay_num to file')
+    sample1 = pd.read_csv('./data/outcomes.csv').ix[train_idx]
+    sample2 = pd.read_csv('./data/outcomes.csv').ix[test_idx]
+    sample1 = sample1.sort_values(by='projectid')
+    sample2 = sample2.sort_values(by='projectid')
+    sample1.set_index('projectid', inplace=True)
+    sample2.set_index('projectid', inplace=True)
+    drop_labels_s = ['is_exciting', 'at_least_1_teacher_referred_donor', 'fully_funded', 'at_least_1_green_donation', 'great_chat',
+    'three_or_more_non_teacher_referred_donors', 'one_non_teacher_referred_donor_giving_100_plus',
+    'donation_from_thoughtful_donor', 'great_messages_proportion', 'teacher_referred_count', 'non_teacher_referred_count']
+    for label in drop_labels_s:
+        sample1.drop(label, axis=1, inplace=True)
+        sample2.drop(label, axis=1, inplace=True)
+    sample1['essay_cd_num'] = train_essay_cd_num
+    sample2['essay_cd_num'] = train_essay_cd_num
+    sample1.to_csv('./data/trainEssayNum.csv', index = True)
+    sample2.to_csv('./data/testEssayNum.csv', index = True)
+
+
 find_essaylen()
 find_school()
 find_teacher()
+find_cd_count()
